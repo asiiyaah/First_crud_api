@@ -4,11 +4,11 @@ A simple FastAPI-based task management API with CRUD endpoints for tasks.
 
 ## Introduction
 
-FastAPI is a powerful and beginner-friendly Python framework for building APIs. It helps you create web services with very little code while still offering automatic validation, clear documentation, and fast performance. If you are new to APIs, think of FastAPI as a tool that lets your application communicate with other apps or websites using simple HTTP requests.
+FastAPI is a Python framework used to build APIs quickly and easily. It is beginner-friendly and helps you create web services with less code. It also gives you automatic validation and built-in documentation, which makes testing your API easier.
 
-In this project, we use FastAPI to build a small task management API. A task is a simple item such as "buy groceries" or "do homework". Through this API, you can create tasks, view all tasks, view one task by ID, update a task, or delete a task.
+This project is a small task management API. You can use it to create tasks, view all tasks, view one task by ID, update a task, or delete a task. Think of it as a simple backend that stores tasks and lets other apps interact with them.
 
-Each API endpoint is a unique URL that performs one action. For example, `/tasks` can be used to get or create tasks, while `/tasks/{task_id}` can be used to view, update, or delete a specific task. FastAPI also generates a built-in Swagger documentation page at `/docs`, which lets you explore the API in your browser and try requests directly.
+An API endpoint is simply a web address that performs a specific action. For example, `/tasks` is used to view or create tasks, and `/tasks/{task_id}` is used to work with one specific task. FastAPI also gives you a Swagger page at `/docs`, where you can see all endpoints and try them in your browser.
 
 ### Features
 
@@ -271,11 +271,15 @@ The API will be available at:
 ## Screenshots
 
 
-```md
+
 ![Swagger UI](screenshots/swagger-ui.png)
+
 ![GET /tasks Response](screenshots/task-api-example.png)
+
 ![POST /tasks Request](screenshots/post-task-request.png)
-```
+
+
+
 ---
 
 ## Notes
