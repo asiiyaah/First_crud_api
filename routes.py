@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException,status,Body
-from schemas import TaskCreate , TaskUpdate
+from schemas import TaskCreate , TaskUpdate , TaskResponse
 
 router=APIRouter()
 
@@ -16,7 +16,7 @@ task_db=[
 def get_tasks():
     return task_db
 
-@router.get("/tasks/{task_id}")
+@router.get("/tasks/{task_id}",response_model=TaskResponse)
 def get_task_byid(task_id : int):
     for task in task_db:
         if task["id"]==task_id:
@@ -24,7 +24,7 @@ def get_task_byid(task_id : int):
         
     raise HTTPException(status_code=404 , detail=f"error : Task {task_id} not found")
 
-@router.post("/tasks",status_code=status.HTTP_201_CREATED)
+@router.post("/tasks",status_code=status.HTTP_201_CREATED,response_model=TaskResponse)
 def post_task(task_input : TaskCreate):
 
     next_id=max([task["id"] for task in task_db],default=0) + 1
@@ -38,7 +38,7 @@ def post_task(task_input : TaskCreate):
     task_db.append(new_task)
     return new_task
 
-@router.put("/tasks/{task_id}")
+@router.put("/tasks/{task_id}",response_model=TaskResponse)
 def update_task(task_id : int , task_update_input : TaskUpdate):
 
     if task_update_input.title is None and task_update_input.done is None:
