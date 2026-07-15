@@ -270,15 +270,17 @@ The API will be available at:
 
 ## Screenshots
 
-
+### Swagger UI
 
 ![Swagger UI](screenshots/swagger-ui.png)
 
+### GET /tasks Response
+
 ![GET /tasks Response](screenshots/task-api-example.png)
 
+### POST /tasks Request
+
 ![POST /tasks Request](screenshots/post-task-request.png)
-
-
 
 ---
 
