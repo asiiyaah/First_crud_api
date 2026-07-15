@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException,status,Body
-from schemas import TaskCreate
+from schemas import TaskCreate , TaskUpdate
 
 router=APIRouter()
 
@@ -38,3 +38,29 @@ def post_task(task_input : TaskCreate):
     task_db.append(new_task)
     return new_task
 
+@router.put("/tasks/{task_id}")
+def update_task(task_id : int , task_update_input : TaskUpdate):
+
+    if task_update_input.title is None and task_update_input.done is None:
+        raise HTTPException(status_code=400, detail="Empty body not allowed")
+
+    for task in task_db:
+        if task["id"] == task_id:
+            if task_update_input.title is not None:
+                task["title"]=task_update_input.title
+
+            if task_update_input.done is not None:
+                task["done"]=task_update_input.done
+
+            return task
+    
+    raise HTTPException(status_code=404,detail="Task not found")
+        
+@router.delete("/tasks/{task_id}",status_code=status.HTTP_204_NO_CONTENT)
+def delete_task(task_id : int):
+    for index , task in enumerate(task_db):
+        if task["id"]==task_id:
+            task_db.pop(index)
+            return
+            
+    raise HTTPException(status_code=404 , detail="Task not found")
