@@ -3,7 +3,7 @@ from schemas import TaskCreate , TaskUpdate , TaskResponse
 
 router=APIRouter()
 
-task_db=[
+sample=[
     {"id":1 ,"title":"Buy groceries", "done":False},
     {"id":2 ,"title":"Do homework", "done":True},
     {"id":3 ,"title":"Do the dishes", "done":False},
@@ -11,10 +11,45 @@ task_db=[
     {"id":5 ,"title":"Work out", "done":True}
 ]
 
+task_db=sample.copy()
+
+@router.post("/reset")
+def reset_tasks():
+    global task_db
+    task_db = sample.copy()
+
+    return {
+    "message": "Tasks reset successfully"
+           }
+
+@router.get("/stats")
+def get_stats():
+    total=len(task_db)
+    done=sum([1 for task in task_db if task["done"]==True])
+    return {
+        "total":total,
+        "done":done,
+        "open":total-done
+    }
+
 
 @router.get("/tasks")
-def get_tasks():
-    return task_db
+def get_tasks(done: bool | None = None, search: str | None = None):
+    tasks = task_db
+
+    # Filter by completion status
+    if done is not None:
+        tasks = [task for task in tasks if task["done"] == done]
+
+    # Filter by title
+    if search is not None:
+        tasks = [
+            task
+            for task in tasks
+            if search.lower() in task["title"].lower()
+        ]
+
+    return tasks
 
 @router.get("/tasks/{task_id}",response_model=TaskResponse)
 def get_task_byid(task_id : int):
