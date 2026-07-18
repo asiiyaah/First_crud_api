@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException,status,Body
 from schemas import TaskCreate , TaskUpdate , TaskResponse
+from typing import Any
 
 router=APIRouter()
 
@@ -50,6 +51,24 @@ def get_tasks(done: bool | None = None, search: str | None = None):
         ]
 
     return tasks
+
+@router.get("/tasks/{field}")
+def path_nd_query(field : str , id :int) -> dict[str , Any]:
+
+    task=next((item for item in sample if item["id"]==id),None)
+
+    if task is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail=f"Task with id {id} not found!")
+    
+    if field not in task:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                            detail=f"Field {field} doesnt exist for this task!")
+
+    return {
+            field : task[field]
+    }
+
 
 @router.get("/tasks/{task_id}",response_model=TaskResponse)
 def get_task_byid(task_id : int):
