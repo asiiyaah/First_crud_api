@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException,status,Body
 from schemas import TaskCreate , TaskUpdate , TaskResponse
 from typing import Any
+#from database import load_tasks, save_tasks
 
 router=APIRouter()
 
@@ -12,13 +13,15 @@ sample=[
     {"id":5 ,"title":"Work out", "done":True}
 ]
 
+#task_db = load_tasks()
 task_db=sample.copy()
+
 
 @router.post("/reset")
 def reset_tasks():
     global task_db
     task_db = sample.copy()
-
+    #save_tasks(task_db)
     return {
     "message": "Tasks reset successfully"
            }
@@ -55,7 +58,9 @@ def get_tasks(done: bool | None = None, search: str | None = None):
 @router.get("/tasks/{field}")
 def path_nd_query(field : str , id :int) -> dict[str , Any]:
 
+    #task=next((item for item in task_db if item["id"]==id),None)
     task=next((item for item in sample if item["id"]==id),None)
+
 
     if task is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
@@ -90,6 +95,7 @@ def post_task(task_input : TaskCreate):
     }    
 
     task_db.append(new_task)
+    #save_tasks(task_db)
     return new_task
 
 @router.put("/tasks/{task_id}",response_model=TaskResponse)
@@ -106,6 +112,7 @@ def update_task(task_id : int , task_update_input : TaskUpdate):
             if task_update_input.done is not None:
                 task["done"]=task_update_input.done
 
+            #save_tasks(task_db)
             return task
     
     raise HTTPException(status_code=404,detail="Task not found")
@@ -115,6 +122,7 @@ def delete_task(task_id : int):
     for index , task in enumerate(task_db):
         if task["id"]==task_id:
             task_db.pop(index)
+            #save_tasks(task_db)
             return
             
     raise HTTPException(status_code=404 , detail="Task not found")
