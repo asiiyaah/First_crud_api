@@ -89,6 +89,8 @@ def get_tasks(
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
+    query += " ORDER BY title"
+
     cursor.execute(query, parameters)
 
     rows = cursor.fetchall()
