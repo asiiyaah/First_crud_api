@@ -146,6 +146,7 @@ def get_task_byid(task_id: int):
     response_model=TaskResponse
 )
 def post_task(task_input: TaskCreate):
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -172,7 +173,6 @@ def post_task(task_input: TaskCreate):
         "title": row["title"],
         "done": bool(row["done"])
     }
-
 
 # --------------------------------------------------
 # UPDATE TASK
