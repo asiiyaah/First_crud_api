@@ -122,6 +122,8 @@ def get_stats():
         "completed": completed,
         "pending": pending
     }
+
+
 # --------------------------------------------------
 # CREATE TASK
 # --------------------------------------------------
@@ -140,23 +142,17 @@ def create_task(task_input: TaskCreate):
     cursor.execute(
         """
         INSERT INTO tasks
-        (title, done, created_at, updated_at)
-        VALUES (?, ?, ?, ?)
+            (title, done, created_at, updated_at)
+        VALUES
+            (%s, %s, %s, %s)
+        RETURNING *
         """,
-        (task_input.title, 0, now, now)
-    )
-
-    task_id = cursor.lastrowid
-
-    connection.commit()
-
-    cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (task_id,)
+        (task_input.title, False, now, now)
     )
 
     row = cursor.fetchone()
 
+    connection.commit()
     connection.close()
 
     return {
@@ -192,8 +188,9 @@ def update_task(
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Check whether task exists
     cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
+        "SELECT * FROM tasks WHERE id = %s",
         (task_id,)
     )
 
@@ -214,8 +211,7 @@ def update_task(
     )
 
     new_done = (
-        1 if task_update_input.done
-        else 0
+        task_update_input.done
         if task_update_input.done is not None
         else row["done"]
     )
@@ -225,21 +221,18 @@ def update_task(
     cursor.execute(
         """
         UPDATE tasks
-        SET title = ?, done = ?, updated_at = ?
-        WHERE id = ?
+        SET title = %s,
+            done = %s,
+            updated_at = %s
+        WHERE id = %s
+        RETURNING *
         """,
         (new_title, new_done, now, task_id)
     )
 
-    connection.commit()
-
-    cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
-        (task_id,)
-    )
-
     updated_row = cursor.fetchone()
 
+    connection.commit()
     connection.close()
 
     return {
@@ -263,8 +256,9 @@ def delete_task(task_id: int):
     connection = get_connection()
     cursor = connection.cursor()
 
+    # Check whether task exists
     cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
+        "SELECT * FROM tasks WHERE id = %s",
         (task_id,)
     )
 
@@ -279,7 +273,7 @@ def delete_task(task_id: int):
         )
 
     cursor.execute(
-        "DELETE FROM tasks WHERE id = ?",
+        "DELETE FROM tasks WHERE id = %s",
         (task_id,)
     )
 
@@ -287,5 +281,3 @@ def delete_task(task_id: int):
     connection.close()
 
     return None
-
-
