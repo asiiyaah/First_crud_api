@@ -1,4 +1,5 @@
 services:
+
   api:
     build: .
     ports:
@@ -8,6 +9,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
 
   db:
     image: postgres:17
@@ -21,6 +24,9 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  redis:
+    image: redis:7
 
 volumes:
   taskdata:

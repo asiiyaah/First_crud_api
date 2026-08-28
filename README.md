@@ -30,6 +30,7 @@ The complete application stack runs with one Docker Compose command.
 - PostgreSQL
 - Docker
 - Docker Compose
+- Redis
 
 ## Project Structure
 
@@ -261,6 +262,31 @@ View the stored tasks:
 ```bash
 docker exec -it assignment1-db-1 psql -U postgres -d tasks -c "SELECT * FROM tasks;"
 ```
+
+## Redis
+
+Redis is included in the Docker Compose stack as a supporting service.
+
+The API connects to Redis using the Docker Compose service name `redis` and sends a `PING` command during startup. 
+
+A successful connection returns:
+
+```text
+PONG
+```
+
+Redis can also be checked directly with:
+
+```bash
+docker exec assignment1-redis-1 redis-cli ping
+```
+
+Expected output:
+
+```text
+PONG
+```
+
 
 ### Database Screenshot
 
