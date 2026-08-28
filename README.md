@@ -362,6 +362,21 @@ No manual database setup is required.
 - Statistics use SQL `COUNT(*)`.
 - User-provided SQL values use parameterized queries.
 
+## Multi-Stage Docker Build
+
+The Dockerfile uses a multi-stage build with separate builder and runtime stages.
+
+The builder stage installs the Python dependencies, while the final runtime stage copies only the installed dependencies and application files.
+
+### Image Size Comparison
+
+| Version | Disk Usage | Content Size |
+|---|---:|---:|
+| Before multi-stage build | 335 MB | 77.4 MB |
+| After multi-stage build | 320 MB | 73.7 MB |
+
+The multi-stage build reduced the Docker image disk usage by approximately 15 MB.
+
 ## Future Improvements
 
 - Database migrations
