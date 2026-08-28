@@ -27,12 +27,12 @@ def get_tasks(
 
     # Filter by completion status
     if done is not None:
-        conditions.append("done = ?")
-        parameters.append(1 if done else 0)
+        conditions.append("done = %s")
+        parameters.append(done)
 
     # Filter by title
     if search is not None:
-        conditions.append("title LIKE ?")
+        conditions.append("title ILIKE %s")
         parameters.append(f"%{search}%")
 
     if conditions:
@@ -64,16 +64,16 @@ def get_tasks(
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
 def get_task_byid(task_id: int):
-
     connection = get_connection()
     cursor = connection.cursor()
 
     cursor.execute(
-        "SELECT * FROM tasks WHERE id = ?",
+        "SELECT * FROM tasks WHERE id = %s",
         (task_id,)
     )
 
     row = cursor.fetchone()
+
     connection.close()
 
     if row is None:
@@ -92,6 +92,37 @@ def get_task_byid(task_id: int):
 
 
 # --------------------------------------------------
+# STATS
+# --------------------------------------------------
+
+@router.get("/stats")
+def get_stats():
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT COUNT(*) AS count FROM tasks"
+    )
+    total = cursor.fetchone()["count"]
+
+    cursor.execute(
+        "SELECT COUNT(*) AS count FROM tasks WHERE done = TRUE"
+    )
+    completed = cursor.fetchone()["count"]
+
+    cursor.execute(
+        "SELECT COUNT(*) AS count FROM tasks WHERE done = FALSE"
+    )
+    pending = cursor.fetchone()["count"]
+
+    connection.close()
+
+    return {
+        "total": total,
+        "completed": completed,
+        "pending": pending
+    }
+# --------------------------------------------------
 # CREATE TASK
 # --------------------------------------------------
 
@@ -101,7 +132,6 @@ def get_task_byid(task_id: int):
     status_code=status.HTTP_201_CREATED
 )
 def create_task(task_input: TaskCreate):
-
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -150,7 +180,6 @@ def update_task(
     task_id: int,
     task_update_input: TaskUpdate
 ):
-
     if (
         task_update_input.title is None
         and task_update_input.done is None
@@ -231,7 +260,6 @@ def update_task(
     status_code=status.HTTP_204_NO_CONTENT
 )
 def delete_task(task_id: int):
-
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -261,33 +289,3 @@ def delete_task(task_id: int):
     return None
 
 
-# --------------------------------------------------
-# STATS
-# --------------------------------------------------
-
-@router.get("/stats")
-def get_stats():
-
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    total = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM tasks WHERE done = 1"
-    )
-    completed = cursor.fetchone()[0]
-
-    cursor.execute(
-        "SELECT COUNT(*) FROM tasks WHERE done = 0"
-    )
-    pending = cursor.fetchone()[0]
-
-    connection.close()
-
-    return {
-        "total": total,
-        "completed": completed,
-        "pending": pending
-    }
