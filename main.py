@@ -1,21 +1,32 @@
 from fastapi import FastAPI
-from routes import router
-from database import init_db
 
-app = FastAPI(title="Task API")
+from database import init_db
+from routes import router
+
+
+app = FastAPI(
+    title="Task API",
+    version="1.0"
+)
+
 
 init_db()
 
+
 @app.get("/")
-def read_root():
+def root():
     return {
         "name": "Task API",
         "version": "1.0",
         "endpoints": ["/tasks"]
     }
 
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok"
+    }
+
 
 app.include_router(router)

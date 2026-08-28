@@ -1,69 +1,19 @@
+from datetime import datetime
+
 from fastapi import APIRouter, HTTPException, status
-from schemas import TaskCreate, TaskUpdate, TaskResponse
+
 from database import get_connection
+from schemas import TaskCreate, TaskResponse, TaskUpdate
+
 
 router = APIRouter()
-
-
-# --------------------------------------------------
-# RESET
-# --------------------------------------------------
-
-@router.post("/reset")
-def reset_tasks():
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("DELETE FROM tasks")
-
-    sample_tasks = [
-        ("Buy groceries", 0),
-        ("Do homework", 1),
-        ("Do the dishes", 0)
-    ]
-
-    cursor.executemany(
-        "INSERT INTO tasks (title, done) VALUES (?, ?)",
-        sample_tasks
-    )
-
-    connection.commit()
-    connection.close()
-
-    return {
-        "message": "Tasks reset successfully"
-    }
-
-
-# --------------------------------------------------
-# STATS
-# --------------------------------------------------
-
-@router.get("/stats")
-def get_stats():
-    connection = get_connection()
-    cursor = connection.cursor()
-
-    cursor.execute("SELECT COUNT(*) FROM tasks")
-    total = cursor.fetchone()[0]
-
-    cursor.execute("SELECT COUNT(*) FROM tasks WHERE done = ?", (1,))
-    done = cursor.fetchone()[0]
-
-    connection.close()
-
-    return {
-        "total": total,
-        "done": done,
-        "open": total - done
-    }
 
 
 # --------------------------------------------------
 # GET ALL TASKS
 # --------------------------------------------------
 
-@router.get("/tasks")
+@router.get("/tasks", response_model=list[TaskResponse])
 def get_tasks(
     done: bool | None = None,
     search: str | None = None
@@ -73,7 +23,6 @@ def get_tasks(
 
     query = "SELECT * FROM tasks"
     parameters = []
-
     conditions = []
 
     # Filter by completion status
@@ -89,10 +38,10 @@ def get_tasks(
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
 
+    # Alphabetical sorting
     query += " ORDER BY title"
 
     cursor.execute(query, parameters)
-
     rows = cursor.fetchall()
 
     connection.close()
@@ -101,7 +50,9 @@ def get_tasks(
         {
             "id": row["id"],
             "title": row["title"],
-            "done": bool(row["done"])
+            "done": bool(row["done"]),
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"]
         }
         for row in rows
     ]
@@ -113,6 +64,7 @@ def get_tasks(
 
 @router.get("/tasks/{task_id}", response_model=TaskResponse)
 def get_task_byid(task_id: int):
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -122,7 +74,6 @@ def get_task_byid(task_id: int):
     )
 
     row = cursor.fetchone()
-
     connection.close()
 
     if row is None:
@@ -134,7 +85,9 @@ def get_task_byid(task_id: int):
     return {
         "id": row["id"],
         "title": row["title"],
-        "done": bool(row["done"])
+        "done": bool(row["done"]),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"]
     }
 
 
@@ -144,17 +97,23 @@ def get_task_byid(task_id: int):
 
 @router.post(
     "/tasks",
-    status_code=status.HTTP_201_CREATED,
-    response_model=TaskResponse
+    response_model=TaskResponse,
+    status_code=status.HTTP_201_CREATED
 )
-def post_task(task_input: TaskCreate):
+def create_task(task_input: TaskCreate):
 
     connection = get_connection()
     cursor = connection.cursor()
 
+    now = datetime.now().isoformat()
+
     cursor.execute(
-        "INSERT INTO tasks (title, done) VALUES (?, ?)",
-        (task_input.title, 0)
+        """
+        INSERT INTO tasks
+        (title, done, created_at, updated_at)
+        VALUES (?, ?, ?, ?)
+        """,
+        (task_input.title, 0, now, now)
     )
 
     task_id = cursor.lastrowid
@@ -173,8 +132,11 @@ def post_task(task_input: TaskCreate):
     return {
         "id": row["id"],
         "title": row["title"],
-        "done": bool(row["done"])
+        "done": bool(row["done"]),
+        "created_at": row["created_at"],
+        "updated_at": row["updated_at"]
     }
+
 
 # --------------------------------------------------
 # UPDATE TASK
@@ -188,6 +150,7 @@ def update_task(
     task_id: int,
     task_update_input: TaskUpdate
 ):
+
     if (
         task_update_input.title is None
         and task_update_input.done is None
@@ -228,13 +191,15 @@ def update_task(
         else row["done"]
     )
 
+    now = datetime.now().isoformat()
+
     cursor.execute(
         """
         UPDATE tasks
-        SET title = ?, done = ?
+        SET title = ?, done = ?, updated_at = ?
         WHERE id = ?
         """,
-        (new_title, new_done, task_id)
+        (new_title, new_done, now, task_id)
     )
 
     connection.commit()
@@ -251,7 +216,9 @@ def update_task(
     return {
         "id": updated_row["id"],
         "title": updated_row["title"],
-        "done": bool(updated_row["done"])
+        "done": bool(updated_row["done"]),
+        "created_at": updated_row["created_at"],
+        "updated_at": updated_row["updated_at"]
     }
 
 
@@ -263,8 +230,8 @@ def update_task(
     "/tasks/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
-
 def delete_task(task_id: int):
+
     connection = get_connection()
     cursor = connection.cursor()
 
@@ -291,4 +258,36 @@ def delete_task(task_id: int):
     connection.commit()
     connection.close()
 
-    return
+    return None
+
+
+# --------------------------------------------------
+# STATS
+# --------------------------------------------------
+
+@router.get("/stats")
+def get_stats():
+
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM tasks")
+    total = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks WHERE done = 1"
+    )
+    completed = cursor.fetchone()[0]
+
+    cursor.execute(
+        "SELECT COUNT(*) FROM tasks WHERE done = 0"
+    )
+    pending = cursor.fetchone()[0]
+
+    connection.close()
+
+    return {
+        "total": total,
+        "completed": completed,
+        "pending": pending
+    }
