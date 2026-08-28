@@ -261,6 +261,7 @@ def update_task(
     "/tasks/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT
 )
+
 def delete_task(task_id: int):
     connection = get_connection()
     cursor = connection.cursor()
