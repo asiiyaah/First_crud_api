@@ -1,26 +1,35 @@
 # Task API
 
-A simple FastAPI-based task management API with CRUD endpoints for tasks, SQLite database storage, and SQL-based search, filtering, sorting, statistics, and timestamps.
+A simple FastAPI task management API using PostgreSQL for persistent storage. It supports CRUD operations, SQL-based search, filtering, sorting, statistics, and timestamps.
 
-## Introduction
+## What this is
 
-FastAPI is a Python framework used to build APIs quickly and easily. It is beginner-friendly and helps you create web services with less code. It also provides automatic validation and built-in API documentation, which makes testing an API easier.
+This project is a small task management API built with FastAPI and PostgreSQL. It can create, retrieve, update, and delete tasks. Search, filtering, alphabetical sorting, and statistics are performed directly in PostgreSQL.
 
-This project is a small task management API. You can use it to create tasks, view all tasks, view one task by ID, update a task, or delete a task. The project initially used an in-memory list for storing tasks and was then connected to a SQLite database so task data persists after the server is restarted.
-
-The database is also used to perform searching, filtering, alphabetical sorting, and statistics directly using SQL.
+The complete application stack runs with one Docker Compose command.
 
 ## Features
 
 - Create, retrieve, update, and delete tasks
-- Persistent SQLite database storage
-- Search tasks by title using SQL
-- Filter tasks by completion status using SQL
-- Sort tasks alphabetically using SQL
-- View task statistics using SQL
-- Track task creation and update timestamps
-- Built-in health check endpoint
-- Interactive API documentation at `/docs`
+- Persistent PostgreSQL storage
+- Search tasks by title
+- Filter tasks by completion status
+- Alphabetical sorting
+- Task statistics
+- Creation and update timestamps
+- Health check endpoint
+- Interactive Swagger documentation at `/docs`
+- One-command Docker Compose startup
+- PostgreSQL persistence through a Docker volume
+
+## Tech Stack
+
+- Python
+- FastAPI
+- Psycopg
+- PostgreSQL
+- Docker
+- Docker Compose
 
 ## Project Structure
 
@@ -29,201 +38,194 @@ main.py
 routes.py
 schemas.py
 database.py
-tasks.db
+Dockerfile
+compose.yaml
+.env.example
+.gitignore
 README.md
 screenshots/
 ```
 
-- `main.py` contains the FastAPI app instance, root/health endpoints, database initialization, and router registration.
-- `routes.py` defines task-related API routes and database operations.
-- `schemas.py` contains Pydantic request and response models.
-- `database.py` contains the SQLite connection and initialization logic.
-- `tasks.db` is the local SQLite database file.
-- `README.md` contains project documentation.
-- `screenshots/` contains screenshots used in this README.
+- `main.py` — FastAPI app and startup/database initialization.
+- `routes.py` — API routes and database operations.
+- `schemas.py` — Pydantic request/response models.
+- `database.py` — PostgreSQL connection and initialization.
+- `Dockerfile` — API container definition.
+- `compose.yaml` — API and PostgreSQL services.
+- `.env.example` — required environment variable template.
+- `.env` — local environment configuration; not committed.
 
 ## Database
 
-The application uses **SQLite** to store tasks instead of an in-memory Python list.
+The application uses **PostgreSQL**.
 
-The database file is:
-
-```text
-tasks.db
-```
-
-It is created automatically when the application starts.
+The `tasks` table is created automatically when the application starts. Three sample tasks are inserted only when the table is empty.
 
 ### Tasks Table
 
 | Field | Type | Description |
 |---|---|---|
-| `id` | INTEGER | Primary key generated automatically by SQLite |
+| `id` | SERIAL | Automatically generated primary key |
 | `title` | TEXT | Task title |
-| `done` | INTEGER | Completion status (`0` = false, `1` = true) |
-| `created_at` | TEXT | Time when the task was created |
-| `updated_at` | TEXT | Time when the task was last updated |
+| `done` | BOOLEAN | Completion status |
+| `created_at` | TEXT | Creation timestamp |
+| `updated_at` | TEXT | Last update timestamp |
 
-The task ID is generated automatically using:
+## Environment Variables
 
-```sql
-id INTEGER PRIMARY KEY AUTOINCREMENT
+The application uses `DATABASE_URL`.
+
+Copy `.env.example` to `.env` and set the required value:
+
+```env
+DATABASE_URL=postgres://postgres:YOUR_PASSWORD@localhost:5433/tasks
 ```
 
-Three sample tasks are inserted only when the table is empty, preventing duplicate sample tasks on server restart.
+The `.env` file is git-ignored. `.env.example` is committed.
+
+Inside Docker Compose, the API connects to PostgreSQL using the service name `db`, not `localhost`.
+
+## Run Everything With One Command
+
+After cloning:
+
+```bash
+cp .env.example .env
+docker compose up
+```
+
+Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+docker compose up
+```
+
+The API is available at:
+
+```text
+http://localhost:3000
+```
+
+Swagger UI:
+
+```text
+http://localhost:3000/docs
+```
+
+No manual PostgreSQL setup is required.
 
 ## API Endpoints
 
-### 1. Root Endpoint
+| Method | Endpoint | Description | Success |
+|---|---|---|---|
+| GET | `/` | API information | 200 |
+| GET | `/health` | Health check | 200 |
+| GET | `/tasks` | Get all tasks | 200 |
+| GET | `/tasks/{task_id}` | Get one task | 200 |
+| POST | `/tasks` | Create a task | 201 |
+| PUT | `/tasks/{task_id}` | Update a task | 200 |
+| DELETE | `/tasks/{task_id}` | Delete a task | 204 |
+| GET | `/tasks?search=...` | Search tasks | 200 |
+| GET | `/tasks?done=true/false` | Filter tasks | 200 |
+| GET | `/stats` | Task statistics | 200 |
 
-**GET `/`**
+Unknown task IDs return `404` with a task-not-found error.
 
-Returns basic API information.
+## Example `curl -i`
 
-```json
-{
-  "name": "Task API",
-  "version": "1.0",
-  "endpoints": ["/tasks"]
-}
+```bash
+curl -i http://localhost:3000/tasks
 ```
 
-### 2. Health Check
+Expected result:
 
-**GET `/health`**
-
-```json
-{
-  "status": "ok"
-}
+```text
+HTTP/1.1 200 OK
 ```
 
-### 3. Get All Tasks
+followed by the task rows returned from PostgreSQL.
 
-**GET `/tasks`**
+## Other Requests
 
-Returns all tasks from SQLite, sorted alphabetically by title.
+### Get one task
 
-### 4. Get One Task
+```bash
+curl -i http://localhost:3000/tasks/1
+```
 
-**GET `/tasks/{task_id}`**
+### Create a task
 
-Example:
+```bash
+curl -i -X POST "http://localhost:3000/tasks" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"title\":\"Learn FastAPI\"}"
+```
+
+### Update a task
+
+```bash
+curl -i -X PUT "http://localhost:3000/tasks/1" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"done\":true}"
+```
+
+### Delete a task
+
+```bash
+curl -i -X DELETE "http://localhost:3000/tasks/1"
+```
+
+### Search
+
+```bash
+curl -i "http://localhost:3000/tasks?search=home"
+```
+
+### Filter
+
+```bash
+curl -i "http://localhost:3000/tasks?done=false"
+```
+
+### Statistics
+
+```bash
+curl -i http://localhost:3000/stats
+```
+
+## SQL Search, Filtering, and Sorting
+
+Search uses a parameterized PostgreSQL query with `ILIKE`:
 
 ```http
-GET /tasks/1
+GET /tasks?search=home
 ```
 
-A missing task returns `404 Not Found`.
-
-### 5. Create a Task
-
-**POST `/tasks`**
-
-Status code: `201 Created`
-
-Request:
-
-```json
-{
-  "title": "Learn FastAPI"
-}
-```
-
-When a task is created, both timestamps are set to the current time.
-
-### 6. Update a Task
-
-**PUT `/tasks/{task_id}`**
-
-Request:
-
-```json
-{
-  "title": "Learn FastAPI thoroughly",
-  "done": true
-}
-```
-
-A single field can also be updated:
-
-```json
-{
-  "done": true
-}
-```
-
-`created_at` remains unchanged while `updated_at` is changed to the current time.
-
-An empty update body returns `400 Bad Request`. A missing task returns `404 Not Found`.
-
-### 7. Delete a Task
-
-**DELETE `/tasks/{task_id}`**
-
-Successful deletion returns `204 No Content`.
-
-A missing task returns `404 Not Found`.
-
-## SQL-Based Extras
-
-### Search Tasks
-
-```http
-GET /tasks?search=milk
-```
-
-The database uses:
-
-```sql
-WHERE title LIKE ?
-```
-
-Partial matches are supported.
-
-### Filter by Status
-
-Completed:
+Filtering:
 
 ```http
 GET /tasks?done=true
-```
-
-Incomplete:
-
-```http
 GET /tasks?done=false
 ```
 
-The database uses:
-
-```sql
-WHERE done = ?
-```
-
-Python booleans are converted to SQLite values: `true -> 1` and `false -> 0`.
-
-### Alphabetical Sorting
-
-Tasks are sorted by title using:
+Sorting is performed by PostgreSQL:
 
 ```sql
 ORDER BY title
 ```
 
-The database performs the sorting instead of Python.
-
-Filtering and searching can also be combined with sorting:
+Search and filtering can be combined:
 
 ```http
 GET /tasks?done=false&search=do
 ```
 
-### Task Statistics
+## Task Statistics
 
 **GET `/stats`**
 
-Example response:
+Example:
 
 ```json
 {
@@ -244,156 +246,65 @@ created_at
 updated_at
 ```
 
-When a task is created, both timestamps are set to the current time.
+Both are set when a task is created. On update, only `updated_at` changes.
 
-When a task is updated, only `updated_at` changes. `created_at` continues to represent the original creation time.
+## PostgreSQL Database Check
 
-Adding `created_at` and `updated_at` required changing the structure of the existing database table, which made the change feel more involved than simply modifying Python code. Having to recreate the table for this small change made it clear why database migrations are useful for safely managing changes to a table's shape.
-
-## Example Requests
-
-### Get all tasks
+List the tables:
 
 ```bash
-curl http://127.0.0.1:8000/tasks
+docker exec -it assignment1-db-1 psql -U postgres -d tasks -c "\dt"
 ```
 
-### Get one task
+View the stored tasks:
 
 ```bash
-curl http://127.0.0.1:8000/tasks/1
+docker exec -it assignment1-db-1 psql -U postgres -d tasks -c "SELECT * FROM tasks;"
 ```
 
-### Create a task
+### Database Screenshot
+
+![PostgreSQL Database](screenshots/postgres-database.png)
+
+The screenshot should show the PostgreSQL `tasks` table and its stored task data.
+
+## Persistence Check
+
+Create a task, then restart the complete stack:
 
 ```bash
-curl -X POST "http://127.0.0.1:8000/tasks" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"title\":\"Learn FastAPI\"}"
+docker compose down
+docker compose up
 ```
 
-### Update a task
+The task remains because PostgreSQL data is stored in the `taskdata` Docker volume.
+
+## Clean Clone / Stranger Run
+
+A stranger should be able to:
 
 ```bash
-curl -X PUT "http://127.0.0.1:8000/tasks/1" ^
-  -H "Content-Type: application/json" ^
-  -d "{\"done\":true}"
+cp .env.example .env
+docker compose up
 ```
 
-### Delete a task
+Then:
 
 ```bash
-curl -X DELETE "http://127.0.0.1:8000/tasks/1"
+curl -i http://localhost:3000/tasks
 ```
 
-### Search tasks
+The API and PostgreSQL database start together, the `tasks` table is created automatically, and the three seed tasks appear when the database is empty.
 
-```bash
-curl "http://127.0.0.1:8000/tasks?search=milk"
-```
+No manual database setup is required.
 
-### Filter completed tasks
+## Security
 
-```bash
-curl "http://127.0.0.1:8000/tasks?done=true"
-```
-
-### Get statistics
-
-```bash
-curl http://127.0.0.1:8000/stats
-```
-
-## How to Run
-
-### Prerequisites
-
-- Python 3.8+
-- FastAPI
-- Uvicorn
-
-### Activate the Virtual Environment
-
-Windows PowerShell:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-### Install Dependencies
-
-```bash
-pip install "fastapi[standard]"
-```
-
-### Start the Server
-
-```bash
-uvicorn main:app --reload
-```
-
-The API will be available at:
-
-```text
-http://127.0.0.1:8000
-```
-
-Swagger UI:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
-ReDoc:
-
-```text
-http://127.0.0.1:8000/redoc
-```
-
-## SQLite Database Operations
-
-The database can be inspected using **DB Browser for SQLite**.
-
-### View all tasks
-
-```sql
-SELECT * FROM tasks;
-```
-
-### View completed tasks
-
-```sql
-SELECT * FROM tasks
-WHERE done = 1;
-```
-
-### Count all tasks
-
-```sql
-SELECT COUNT(*) FROM tasks;
-```
-
-### View tasks alphabetically
-
-```sql
-SELECT * FROM tasks
-ORDER BY title;
-```
-
-### Update a task
-
-```sql
-UPDATE tasks
-SET done = 1
-WHERE id = 1;
-```
-
-### Delete a task
-
-```sql
-DELETE FROM tasks
-WHERE id = 1;
-```
+- `.env` is excluded from Git.
+- `.env.example` contains placeholder credentials.
+- Database credentials are supplied through environment variables.
+- SQL values are passed using parameterized queries.
+- A real database password must never be committed.
 
 ## Screenshots
 
@@ -409,41 +320,26 @@ WHERE id = 1;
 
 ![POST /tasks Request](screenshots/post-task-request.png)
 
-### SQLite Database
+### PostgreSQL Database
 
-![SQLite Database](screenshots/sqlite-database.png)
-
-The SQLite screenshot shows the `tasks` table in DB Browser for SQLite with the stored task data.
+![PostgreSQL Database](screenshots/postgres-database.png)
 
 ## Notes
 
-- The application uses SQLite for persistent task storage.
-- The database file is `tasks.db`.
-- The `tasks` table is created automatically when the application starts.
+- PostgreSQL runs as the `db` service in Docker Compose.
+- The API runs as the `api` service.
+- Inside the Compose network, the database hostname is `db`.
+- PostgreSQL data is persisted in the `taskdata` Docker volume.
 - Three sample tasks are inserted only when the table is empty.
-- Task IDs are automatically generated by SQLite using `AUTOINCREMENT`.
-- Tasks persist after restarting the FastAPI server.
-- Search and status filtering are performed directly using SQL.
-- Alphabetical sorting is performed using SQL's `ORDER BY title`.
-- Task statistics are calculated using SQL's `COUNT(*)`.
-- User-provided values are passed to SQL using parameterized queries.
-- `created_at` is set when a task is created.
-- `updated_at` is changed whenever a task is updated.
-- The database can be inspected using DB Browser for SQLite.
-- `tasks.db` is kept local and is not committed to the repository.
+- Search and filtering are performed in SQL.
+- Sorting uses SQL `ORDER BY`.
+- Statistics use SQL `COUNT(*)`.
+- User-provided SQL values use parameterized queries.
 
 ## Future Improvements
-
-Possible future improvements include:
 
 - Database migrations
 - Pagination
 - Authentication
-- More advanced task filtering
+- More advanced filtering
 - Additional task fields
-
-## Star This Project
-
-If you found this project useful, please show your support by starring the repository on GitHub.
-
-⭐ Star this repo if you like it!
