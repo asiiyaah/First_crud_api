@@ -1,6 +1,5 @@
 from fastapi import FastAPI
-
-from database import init_db
+from database import init_db, get_connection
 from routes import router
 
 
@@ -24,9 +23,22 @@ def root():
 
 @app.get("/health")
 def health():
-    return {
-        "status": "ok"
-    }
+    try:
+        connection = get_connection()
+        cursor = connection.cursor()
+        cursor.execute("SELECT 1")
+        cursor.fetchone()
+        connection.close()
 
+        return {
+            "status": "ok",
+            "db": "ok"
+        }
+
+    except Exception:
+        return {
+            "status": "ok",
+            "db": "error"
+        }
 
 app.include_router(router)
