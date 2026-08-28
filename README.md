@@ -1,23 +1,36 @@
 # Task API
 
-A simple FastAPI-based task management API with CRUD endpoints for tasks.
+A simple FastAPI-based task management API with CRUD endpoints for tasks and SQLite database storage.
+
+---
 
 ## Introduction
 
-FastAPI is a Python framework used to build APIs quickly and easily. It is beginner-friendly and helps you create web services with less code. It also gives you automatic validation and built-in documentation, which makes testing your API easier.
+FastAPI is a Python framework used to build APIs quickly and easily. It is beginner-friendly and helps you create web services with less code. It also provides automatic validation and built-in documentation, which makes testing the API easier.
 
-This project is a small task management API. You can use it to create tasks, view all tasks, view one task by ID, update a task, or delete a task. Think of it as a simple backend that stores tasks and lets other apps interact with them.
+This project is a small task management API. You can use it to create tasks, view all tasks, view one task by ID, update a task, or delete a task.
 
-An API endpoint is simply a web address that performs a specific action. For example, `/tasks` is used to view or create tasks, and `/tasks/{task_id}` is used to work with one specific task. FastAPI also gives you a Swagger page at `/docs`, where you can see all endpoints and try them in your browser.
+The application uses SQLite to persist task data so that tasks remain available even after the FastAPI server is restarted.
 
-### Features
+An API endpoint is simply a web address that performs a specific action. For example, `/tasks` is used to view or create tasks, and `/tasks/{task_id}` is used to work with one specific task.
+
+FastAPI also provides a Swagger page at `/docs`, where you can see all endpoints and try them directly in your browser.
+
+---
+
+## Features
 
 - Create new tasks
-- Retrieve all tasks or a single task by ID
+- Retrieve all tasks
+- Retrieve a single task by ID
 - Update an existing task
 - Delete a task
+- Filter tasks by completion status
+- Search tasks by title
 - Built-in health check endpoint
-- Interactive API docs at `/docs`
+- Interactive API documentation at `/docs`
+- Persistent SQLite database storage
+- Direct database inspection using DB Browser for SQLite
 
 ---
 
@@ -27,272 +40,7 @@ An API endpoint is simply a web address that performs a specific action. For exa
 main.py
 routes.py
 schemas.py
+database.py
+tasks.db
 README.md
-```
-
-- `main.py` contains the FastAPI app instance and root/health endpoints.
-- `routes.py` defines all task-related API routes.
-- `schemas.py` contains request and response models using Pydantic.
-
----
-
-## API Endpoints
-
-### 1. Root endpoint
-
-- Method: `GET`
-- Path: `/`
-- Description: Returns basic API information.
-
-Example response:
-
-```json
-{
-  "name": "Task API",
-  "version": "1.0",
-  "endpoints": ["/tasks"]
-}
-```
-
-### 2. Health check
-
-- Method: `GET`
-- Path: `/health`
-- Description: Confirms that the service is running.
-
-Example response:
-
-```json
-{
-  "status": "ok"
-}
-```
-
-### 3. Get all tasks
-
-- Method: `GET`
-- Path: `/tasks`
-- Description: Returns the full list of tasks.
-
-Example response:
-
-```json
-[
-  {
-    "id": 1,
-    "title": "Buy groceries",
-    "done": false
-  },
-  {
-    "id": 2,
-    "title": "Do homework",
-    "done": true
-  }
-]
-```
-
-### 4. Get a single task by ID
-
-- Method: `GET`
-- Path: `/tasks/{task_id}`
-- Description: Returns the task matching the provided ID.
-
-Example:
-
-```http
-GET /tasks/1
-```
-
-Example response:
-
-```json
-{
-  "id": 1,
-  "title": "Buy groceries",
-  "done": false
-}
-```
-
-If the task does not exist, the API returns a `404` error.
-
-### 5. Create a new task
-
-- Method: `POST`
-- Path: `/tasks`
-- Description: Creates a new task.
-- Status code: `201 Created`
-
-Request body:
-
-```json
-{
-  "title": "Learn FastAPI"
-}
-```
-
-Example response:
-
-```json
-{
-  "id": 6,
-  "title": "Learn FastAPI",
-  "done": false
-}
-```
-
-### 6. Update a task
-
-- Method: `PUT`
-- Path: `/tasks/{task_id}`
-- Description: Updates the title and/or completion status of a task.
-
-Request body example:
-
-```json
-{
-  "title": "Learn FastAPI thoroughly",
-  "done": true
-}
-```
-
-You can also send only one field if needed:
-
-```json
-{
-  "done": true
-}
-```
-
-Example response:
-
-```json
-{
-  "id": 1,
-  "title": "Learn FastAPI thoroughly",
-  "done": true
-}
-```
-
-### 7. Delete a task
-
-- Method: `DELETE`
-- Path: `/tasks/{task_id}`
-- Description: Deletes a task by ID.
-- Status code: `204 No Content`
-
-Example:
-
-```http
-DELETE /tasks/1
-```
-
-If the task does not exist, the API returns a `404` error.
-
----
-
-## Example Requests
-
-### Using curl
-
-Get all tasks:
-
-```bash
-curl http://127.0.0.1:8000/tasks
-```
-
-Create a task:
-
-```bash
-curl -X POST "http://127.0.0.1:8000/tasks" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"Learn FastAPI"}'
-```
-
-Update a task:
-
-```bash
-curl -X PUT "http://127.0.0.1:8000/tasks/1" \
-  -H "Content-Type: application/json" \
-  -d '{"done":true}'
-```
-
-Delete a task:
-
-```bash
-curl -X DELETE "http://127.0.0.1:8000/tasks/1"
-```
-
----
-
-## How to Run
-
-### Prerequisites
-
-- Python 3.8+
-- FastAPI
-- Uvicorn
-
-### Install dependencies
-
-If you are using the virtual environment already created in this workspace, activate it:
-
-```powershell
-.\venv\Scripts\Activate.ps1
-```
-
-Install the FastAPI package with the standard extras:
-
-```bash
-pip install "fastapi[standard]"
-```
-
-You can also run the app in development mode with:
-
-```bash
-fastapi dev main.py
-```
-
-### Start the server
-
-From the project root, you can also start it with:
-
-```bash
-uvicorn main:app --reload
-```
-
-The API will be available at:
-
-- http://127.0.0.1:8000
-- Swagger UI: http://127.0.0.1:8000/docs
-- ReDoc: http://127.0.0.1:8000/redoc
-
----
-
-## Screenshots
-
-### Swagger UI
-
-![Swagger UI](screenshots/swagger-ui.png)
-
-### GET /tasks Response
-
-![GET /tasks Response](screenshots/task-api-example.png)
-
-### POST /tasks Request
-
-![POST /tasks Request](screenshots/post-task-request.png)
-
----
-
-## Notes
-
-- The app uses an in-memory list for demo purposes, so data will reset when the server restarts.
-- For production use, you would typically connect this API to a database.
-
----
-
-## Star This Project
-
-If you found this project useful, please show your support by starring the repository on GitHub.
-
-⭐ Star this repo if you like it!
+screenshots/
