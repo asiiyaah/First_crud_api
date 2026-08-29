@@ -1,32 +1,87 @@
 services:
 
+  # FastAPI application
   api:
+
+    # Build the API Docker image using the Dockerfile
+    # in the current project folder
     build: .
+
+    # Connect computer's port 3000 to container's port 3000
+    # So we can access the API at http://localhost:3000
     ports:
       - "3000:3000"
+
+    # Give the API the PostgreSQL connection details
     environment:
+      # db = PostgreSQL service name inside Docker
+      # 5432 = PostgreSQL's default port
+      # tasks = database name
       DATABASE_URL: postgres://postgres:dev@db:5432/tasks
+
+    # API depends on PostgreSQL and Redis
+    # Start these before starting the API
     depends_on:
+
+      # Wait until PostgreSQL is actually healthy
       db:
         condition: service_healthy
+
+      # Wait until Redis container has started
       redis:
         condition: service_started
 
+
+  # PostgreSQL database service
   db:
+
+    # Use the official PostgreSQL 17 Docker image
     image: postgres:17
+
+    # PostgreSQL configuration
     environment:
+      # PostgreSQL password
       POSTGRES_PASSWORD: dev
+
+      # Create this database when PostgreSQL initializes
       POSTGRES_DB: tasks
+
+    # Persistent database storage
+    #
+    # taskdata = Docker volume
+    # /var/lib/postgresql/data = PostgreSQL's data directory
+    #
+    # Even if the PostgreSQL container is deleted,
+    # the data remains inside the taskdata volume.
     volumes:
       - taskdata:/var/lib/postgresql/data
+
+    # Check whether PostgreSQL is ready to accept connections
     healthcheck:
+
+      # Run pg_isready inside the PostgreSQL container
       test: ["CMD-SHELL", "pg_isready -U postgres -d tasks"]
+
+      # Check every 5 seconds
       interval: 5s
+
+      # Give the health check 5 seconds to respond
       timeout: 5s
+
+      # Try up to 10 times before marking it unhealthy
       retries: 10
 
+
+  # Redis service
   redis:
+
+    # Use the official Redis 7 Docker image
     image: redis:7
 
+
+# Declare the Docker volume used by PostgreSQL
+#
+# Docker manages this volume separately from the container.
+# This is what gives our PostgreSQL database persistence.
 volumes:
   taskdata:
