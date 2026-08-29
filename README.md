@@ -290,7 +290,7 @@ PONG
 
 ### Database Screenshot
 
-![PostgreSQL Database](screenshots/postgres-database.png)
+![PostgreSQL Database](screenshots/postgresql-database.png)
 
 The screenshot should show the PostgreSQL `tasks` table and its stored task data.
 
