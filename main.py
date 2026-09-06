@@ -1,20 +1,9 @@
-import os
-
 from fastapi import FastAPI
-from dotenv import load_dotenv
-from supabase import create_client, Client
 
+from auth_routes import router as auth_router
 from database import init_db, get_connection
 from routes import router
-
 import redis
-
-
-# --------------------------------------------------
-# LOAD ENVIRONMENT VARIABLES
-# --------------------------------------------------
-
-load_dotenv()
 
 
 # --------------------------------------------------
@@ -25,21 +14,6 @@ app = FastAPI(
     title="Task API",
     version="1.0"
 )
-
-
-# --------------------------------------------------
-# CREATE SUPABASE CLIENT
-# --------------------------------------------------
-
-SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
-
-supabase: Client = create_client(
-    SUPABASE_URL,
-    SUPABASE_KEY
-)
-
-print("Supabase client initialized" ,  flush=True)
 
 
 # --------------------------------------------------
@@ -108,3 +82,10 @@ def health():
 # --------------------------------------------------
 
 app.include_router(router)
+
+
+# --------------------------------------------------
+# AUTH ROUTES
+# --------------------------------------------------
+
+app.include_router(auth_router)
