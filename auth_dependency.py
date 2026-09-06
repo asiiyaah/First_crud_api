@@ -1,7 +1,17 @@
-from fastapi import Header
+from fastapi import Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.responses import JSONResponse
 
 from supabase_client import supabase
+
+
+# --------------------------------------------------
+# HTTP BEARER SECURITY
+# --------------------------------------------------
+
+security = HTTPBearer(
+    auto_error=False
+)
 
 
 # --------------------------------------------------
@@ -9,17 +19,14 @@ from supabase_client import supabase
 # --------------------------------------------------
 
 def get_current_user(
-    authorization: str | None = Header(
-        default=None,
-        alias="Authorization"
-    )
+    credentials: HTTPAuthorizationCredentials | None = Depends(security)
 ):
 
     # --------------------------------------------------
-    # CHECK AUTHORIZATION HEADER
+    # CHECK TOKEN
     # --------------------------------------------------
 
-    if not authorization:
+    if credentials is None:
         return JSONResponse(
             status_code=401,
             content={
@@ -28,22 +35,10 @@ def get_current_user(
         )
 
     # --------------------------------------------------
-    # CHECK BEARER FORMAT
+    # GET TOKEN
     # --------------------------------------------------
 
-    if not authorization.startswith("Bearer "):
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Access token required"
-            }
-        )
-
-    # --------------------------------------------------
-    # EXTRACT TOKEN
-    # --------------------------------------------------
-
-    token = authorization.split(" ", 1)[1]
+    token = credentials.credentials
 
     if not token:
         return JSONResponse(
