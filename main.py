@@ -1,8 +1,12 @@
 from fastapi import FastAPI
 
 from auth_routes import router as auth_router
+from protected_routes import router as protected_router
+from public_routes import router as public_router
+
 from database import init_db, get_connection
 from routes import router
+
 import redis
 
 
@@ -27,6 +31,7 @@ redis_client = redis.Redis(
 )
 
 redis_client.ping()
+
 print("Redis: PONG")
 
 
@@ -43,6 +48,7 @@ init_db()
 
 @app.get("/")
 def root():
+
     return {
         "name": "Task API",
         "version": "1.0",
@@ -56,7 +62,9 @@ def root():
 
 @app.get("/health")
 def health():
+
     try:
+
         connection = get_connection()
         cursor = connection.cursor()
 
@@ -71,6 +79,7 @@ def health():
         }
 
     except Exception:
+
         return {
             "status": "ok",
             "db": "error"
@@ -89,3 +98,16 @@ app.include_router(router)
 # --------------------------------------------------
 
 app.include_router(auth_router)
+
+
+# --------------------------------------------------
+# PROTECTED ROUTES
+# --------------------------------------------------
+
+app.include_router(protected_router)
+
+# --------------------------------------------------
+# PUBLIC ROUTES
+# --------------------------------------------------
+
+app.include_router(public_router)

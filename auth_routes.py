@@ -1,8 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from supabase_client import supabase
-from fastapi.responses import JSONResponse
 
 
 # --------------------------------------------------
@@ -33,9 +33,11 @@ def signup(data: AuthRequest):
 
     # Check for missing fields
     if not data.email or not data.password:
-        raise HTTPException(
+        return JSONResponse(
             status_code=400,
-            detail="Email and password are required"
+            content={
+                "error": "Email and password are required"
+            }
         )
 
     try:
@@ -45,9 +47,11 @@ def signup(data: AuthRequest):
         })
 
         if response.user is None:
-            raise HTTPException(
+            return JSONResponse(
                 status_code=400,
-                detail="Signup failed"
+                content={
+                    "error": "Signup failed"
+                }
             )
 
         return {
@@ -55,13 +59,12 @@ def signup(data: AuthRequest):
             "email": response.user.email
         }
 
-    except HTTPException:
-        raise
-
     except Exception as e:
-        raise HTTPException(
+        return JSONResponse(
             status_code=400,
-            detail=str(e)
+            content={
+                "error": str(e)
+            }
         )
 
 
