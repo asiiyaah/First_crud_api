@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
+from supabase_client import supabase
+
 
 # --------------------------------------------------
 # PROTECTED ROUTER
@@ -24,7 +26,10 @@ def profile(
     )
 ):
 
-    # Check whether Authorization header exists
+    # --------------------------------------------------
+    # CHECK AUTHORIZATION HEADER
+    # --------------------------------------------------
+
     if not authorization:
         return JSONResponse(
             status_code=401,
@@ -33,7 +38,10 @@ def profile(
             }
         )
 
-    # Check whether it starts with "Bearer "
+    # --------------------------------------------------
+    # CHECK BEARER FORMAT
+    # --------------------------------------------------
+
     if not authorization.startswith("Bearer "):
         return JSONResponse(
             status_code=401,
@@ -42,10 +50,12 @@ def profile(
             }
         )
 
-    # Extract token
+    # --------------------------------------------------
+    # EXTRACT TOKEN
+    # --------------------------------------------------
+
     token = authorization.split(" ", 1)[1]
 
-    # Check whether token actually exists
     if not token:
         return JSONResponse(
             status_code=401,
@@ -54,11 +64,39 @@ def profile(
             }
         )
 
-    # Stage 2:
-    # We only check that a Bearer token exists.
-    # We do NOT verify the token yet.
-    # Token verification comes in Stage 3.
+    # --------------------------------------------------
+    # VERIFY TOKEN WITH SUPABASE
+    # --------------------------------------------------
+
+    try:
+
+        response = supabase.auth.get_user(token)
+
+        user = response.user
+
+        if user is None:
+            return JSONResponse(
+                status_code=401,
+                content={
+                    "error": "Invalid or expired token"
+                }
+            )
+
+    except Exception:
+
+        return JSONResponse(
+            status_code=401,
+            content={
+                "error": "Invalid or expired token"
+            }
+        )
+
+    # --------------------------------------------------
+    # RETURN SAFE USER INFORMATION
+    # --------------------------------------------------
 
     return {
-        "message": "Token received"
+        "id": user.id,
+        "email": user.email,
+        "created_at": user.created_at
     }
