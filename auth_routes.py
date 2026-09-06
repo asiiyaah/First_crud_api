@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from supabase_client import supabase
+from auth_dependency import get_current_user
 
 
 # --------------------------------------------------
@@ -41,6 +42,7 @@ def signup(data: AuthRequest):
         )
 
     try:
+
         response = supabase.auth.sign_up({
             "email": data.email,
             "password": data.password
@@ -60,6 +62,7 @@ def signup(data: AuthRequest):
         }
 
     except Exception as e:
+
         return JSONResponse(
             status_code=400,
             content={
@@ -85,6 +88,7 @@ def login(data: AuthRequest):
         )
 
     try:
+
         response = supabase.auth.sign_in_with_password({
             "email": data.email,
             "password": data.password
@@ -104,9 +108,34 @@ def login(data: AuthRequest):
         }
 
     except Exception:
+
         return JSONResponse(
             status_code=401,
             content={
                 "error": "Invalid login credentials"
             }
         )
+
+
+# --------------------------------------------------
+# LOGOUT
+# --------------------------------------------------
+
+@router.post(
+    "/logout",
+    status_code=204
+)
+def logout(
+    user=Depends(get_current_user)
+):
+
+    # If authentication failed,
+    # return the error response.
+    if isinstance(user, JSONResponse):
+        return user
+
+    # Sign out the authenticated user
+    supabase.auth.sign_out()
+
+    # 204 means there is no response body.
+    return None

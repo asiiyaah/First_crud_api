@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 
-from supabase_client import supabase
+from auth_dependency import get_current_user
 
 
 # --------------------------------------------------
@@ -20,83 +20,36 @@ router = APIRouter(
 
 @router.get("/profile")
 def profile(
-    authorization: str | None = Header(
-        default=None,
-        alias="Authorization"
-    )
+    user=Depends(get_current_user)
 ):
 
-    # --------------------------------------------------
-    # CHECK AUTHORIZATION HEADER
-    # --------------------------------------------------
-
-    if not authorization:
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Access token required"
-            }
-        )
-
-    # --------------------------------------------------
-    # CHECK BEARER FORMAT
-    # --------------------------------------------------
-
-    if not authorization.startswith("Bearer "):
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Access token required"
-            }
-        )
-
-    # --------------------------------------------------
-    # EXTRACT TOKEN
-    # --------------------------------------------------
-
-    token = authorization.split(" ", 1)[1]
-
-    if not token:
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Access token required"
-            }
-        )
-
-    # --------------------------------------------------
-    # VERIFY TOKEN WITH SUPABASE
-    # --------------------------------------------------
-
-    try:
-
-        response = supabase.auth.get_user(token)
-
-        user = response.user
-
-        if user is None:
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "error": "Invalid or expired token"
-                }
-            )
-
-    except Exception:
-
-        return JSONResponse(
-            status_code=401,
-            content={
-                "error": "Invalid or expired token"
-            }
-        )
-
-    # --------------------------------------------------
-    # RETURN SAFE USER INFORMATION
-    # --------------------------------------------------
+    # If dependency returned an error response,
+    # return it directly.
+    if isinstance(user, JSONResponse):
+        return user
 
     return {
         "id": user.id,
         "email": user.email,
         "created_at": user.created_at
+    }
+
+
+# --------------------------------------------------
+# DASHBOARD
+# --------------------------------------------------
+
+@router.get("/dashboard")
+def dashboard(
+    user=Depends(get_current_user)
+):
+
+    # If dependency returned an error response,
+    # return it directly.
+    if isinstance(user, JSONResponse):
+        return user
+
+    return {
+        "message": "Welcome to your protected dashboard",
+        "user_id": user.id
     }
