@@ -384,3 +384,320 @@ The multi-stage build reduced the Docker image disk usage by approximately 15 MB
 - Authentication
 - More advanced filtering
 - Additional task fields
+# Authentication (Supabase Auth)
+
+This project also includes the authentication requirements from the FlyRank Backend Track Week 2 Assignment A4: **Auth · Login & protect**.
+
+Authentication is handled by **Supabase Auth**. The application does not store passwords or implement password hashing itself. Supabase manages user accounts, passwords, and JWT access tokens. The backend verifies access tokens through Supabase before allowing protected routes.
+
+## Authentication Features
+
+- User signup with Supabase Auth
+- User login with email and password
+- JWT access-token authentication
+- Bearer-token verification using Supabase
+- Reusable FastAPI authentication dependency
+- Protected profile endpoint
+- Protected dashboard endpoint
+- Protected logout endpoint
+- Public information endpoint
+- Swagger UI Bearer authentication with the `Authorize` padlock
+
+## Authentication Environment Variables
+
+In addition to `DATABASE_URL`, the application uses these Supabase environment variables:
+
+```env
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+PORT=3000
+```
+
+The `SUPABASE_KEY` must be the Supabase **anon/public key**. Never use or commit the Supabase `service_role` key.
+
+The real `.env` file is git-ignored. A `.env.example` file is committed with placeholder values so another developer can configure their own environment without receiving any secrets.
+
+A complete `.env.example` should contain:
+
+```env
+DATABASE_URL=your_database_url
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_KEY=your_supabase_anon_key
+PORT=3000
+```
+
+## Authentication API Endpoints
+
+| Method | Endpoint | Authentication | Description | Success |
+|---|---|---|---|---|
+| POST | `/auth/signup` | None | Create a new Supabase user account | 201 |
+| POST | `/auth/login` | None | Authenticate and return access and refresh tokens | 200 |
+| POST | `/auth/logout` | Bearer token | Sign out the authenticated user | 204 |
+| GET | `/protected/profile` | Bearer token | Return safe metadata for the authenticated user | 200 |
+| GET | `/protected/dashboard` | Bearer token | Return protected dashboard information | 200 |
+| GET | `/public/info` | None | Return public information | 200 |
+
+## Authentication Flow
+
+The authentication flow is:
+
+```text
+Sign up / Login
+      ↓
+Supabase Auth
+      ↓
+Access token (JWT)
+      ↓
+Client sends:
+Authorization: Bearer <token>
+      ↓
+FastAPI authentication dependency
+      ↓
+Supabase token verification
+      ↓
+Protected route
+```
+
+## Signup
+
+**POST `/auth/signup`**
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "your-password"
+}
+```
+
+A successful signup returns HTTP `201` with the created user's ID and email.
+
+Missing email or password returns HTTP `400`.
+
+## Login
+
+**POST `/auth/login`**
+
+Request:
+
+```json
+{
+  "email": "user@example.com",
+  "password": "your-password"
+}
+```
+
+A successful login returns HTTP `200` with:
+
+- `access_token`
+- `refresh_token`
+
+Invalid credentials return HTTP `401`:
+
+```json
+{
+  "error": "Invalid login credentials"
+}
+```
+
+## Protected Profile
+
+**GET `/protected/profile`**
+
+Send the access token using:
+
+```http
+Authorization: Bearer <access_token>
+```
+
+A valid token returns the authenticated user's safe metadata, including:
+
+- `id`
+- `email`
+- `created_at`
+
+Missing or malformed authentication returns HTTP `401`:
+
+```json
+{
+  "error": "Access token required"
+}
+```
+
+An invalid or expired token returns HTTP `401`:
+
+```json
+{
+  "error": "Invalid or expired token"
+}
+```
+
+## Protected Dashboard
+
+**GET `/protected/dashboard`**
+
+This route uses the same reusable authentication dependency as `/protected/profile`.
+
+A valid token returns HTTP `200`:
+
+```json
+{
+  "message": "Welcome to your protected dashboard",
+  "user_id": "..."
+}
+```
+
+## Logout
+
+**POST `/auth/logout`**
+
+This endpoint requires a valid Bearer token and returns HTTP `204` on successful sign-out.
+
+## Public Information
+
+**GET `/public/info`**
+
+This endpoint does not require authentication.
+
+Successful response:
+
+```json
+{
+  "message": "Welcome stranger! This info is public."
+}
+```
+
+## Authentication Testing With curl
+
+### Signup
+
+```bash
+curl -i -X POST "http://localhost:3000/auth/signup" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"user@example.com\",\"password\":\"your-password\"}"
+```
+
+### Login
+
+```bash
+curl -i -X POST "http://localhost:3000/auth/login" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"email\":\"user@example.com\",\"password\":\"your-password\"}"
+```
+
+Copy the `access_token` from the login response.
+
+### Protected Profile
+
+```bash
+curl -i "http://localhost:3000/protected/profile" ^
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### Protected Dashboard
+
+```bash
+curl -i "http://localhost:3000/protected/dashboard" ^
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
+```
+
+### Public Information
+
+```bash
+curl -i "http://localhost:3000/public/info"
+```
+
+### Test Missing Authentication
+
+```bash
+curl -i "http://localhost:3000/protected/profile"
+```
+
+Expected status:
+
+```text
+401 Unauthorized
+```
+
+### Test a Tampered Token
+
+Change one character in the access token and send it again:
+
+```bash
+curl -i "http://localhost:3000/protected/profile" ^
+  -H "Authorization: Bearer TAMPERED_ACCESS_TOKEN"
+```
+
+Expected status:
+
+```text
+401 Unauthorized
+```
+
+with:
+
+```json
+{
+  "error": "Invalid or expired token"
+}
+```
+
+## Swagger UI Authentication
+
+FastAPI provides interactive Swagger documentation at:
+
+```text
+http://localhost:3000/docs
+```
+
+The protected authentication routes use FastAPI's HTTP Bearer security scheme.
+
+In Swagger UI:
+
+1. Open `/docs`.
+2. Click the **Authorize** padlock.
+3. Paste the access token from `/auth/login`.
+4. Do not manually add the `Bearer ` prefix when Swagger asks for the bearer token.
+5. Click **Authorize**.
+6. Use **Try it out** on `/protected/profile` or `/protected/dashboard`.
+
+The protected routes should display the lock icon and Swagger should send the token in the `Authorization: Bearer <token>` header.
+
+## Authentication Security
+
+- Supabase manages passwords and authentication.
+- The backend does not store user passwords.
+- Only the Supabase anon/public key is used by the application.
+- The Supabase `service_role` key must never be used here.
+- `.env` is excluded from Git.
+- `.env.example` contains placeholders only.
+- Access tokens are sent using the standard `Authorization: Bearer <token>` header.
+- Protected routes verify the token with Supabase before returning private user information.
+- Invalid, expired, missing, or malformed tokens are rejected with HTTP `401`.
+
+## Assignment Stage Commits
+
+The authentication work was completed stage by stage as required:
+
+```text
+Stage 0: setup server and supabase client
+Stage 1: signup and login routes working
+Stage 2: public route and unverified protected route
+Stage 3: profile route token verification
+Stage 4: auth middleware and logout endpoint
+Stage 5: Swagger UI documentation with bearer auth
+Stage 6: publish to GitHub and write README
+```
+
+## GitHub / Clean Setup
+
+Before publishing the repository:
+
+- Confirm `.env` is listed in `.gitignore`.
+- Confirm `.env` has never been committed.
+- Commit `.env.example` with placeholder values.
+- Do not place Supabase keys or database passwords in source code.
+- Push the stage commits to the public GitHub repository.
+
+A fresh clone should be able to create its own `.env`, run Docker Compose, configure Supabase credentials, and use the authenticated API without access to the original developer's secrets.
