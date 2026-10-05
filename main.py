@@ -9,6 +9,8 @@ from routes import router
 
 import redis
 
+from llm.routes import router as llm_router
+
 
 # --------------------------------------------------
 # CREATE FASTAPI APP
@@ -111,3 +113,5 @@ app.include_router(protected_router)
 # --------------------------------------------------
 
 app.include_router(public_router)
+
+app.include_router(llm_router)
