@@ -9,6 +9,8 @@ from .schema import TriageResponse
 
 PROMPT_VERSION = "triage-v1"
 
+CONFIDENCE_THRESHOLD = 0.6
+
 
 def load_prompt() -> str:
     prompt_path = (
@@ -39,6 +41,7 @@ def triage_task(text: str) -> TriageResponse:
     )
 
     content = response.choices[0].message.content.strip()
+    
 
     if content.startswith("```json"):
         content = content[7:]
@@ -49,9 +52,18 @@ def triage_task(text: str) -> TriageResponse:
     content = content.strip()
 
     try:
-        return TriageResponse.model_validate_json(content)
+        result = TriageResponse.model_validate_json(content)
     except ValidationError as exc:
         raise HTTPException(
-            status_code=502,
-            detail="LLM returned an invalid triage response.",
-            ) from exc
+        status_code=502,
+        detail="LLM returned an invalid triage response.",
+        ) from exc
+
+    if result.confidence < CONFIDENCE_THRESHOLD:
+        result.category = "other"
+        result.priority = "normal"
+        result.reason = (
+        "The model was not confident enough to classify this request."
+        )
+
+    return result
