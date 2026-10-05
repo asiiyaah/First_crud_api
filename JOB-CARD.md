@@ -12,7 +12,7 @@ Output:
 {
   "category": "bug | feature | task | other",
   "priority": "low | normal | high",
-  "confidence": "0.0-1.0",
+  "confidence": 0.0-1.0,
   "reason": "one short sentence"
 }
 

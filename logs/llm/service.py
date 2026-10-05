@@ -364,20 +364,16 @@ def triage_task(text: str) -> TriageResponse:
             user_input=repair_message,
         )
 
-        repair_effective_input_tokens = (
-            repair_response.input_tokens or repair_input_tokens
-        )
-
         _log_call(
             prompt_version=prompt_version,
             model=provider.model,
-            input_tokens=repair_effective_input_tokens,
+            input_tokens=repair_response.input_tokens,
             output_tokens=repair_response.output_tokens,
             duration_ms=repair_response.duration_ms,
             repair_count=1,
             status="repair_success",
             estimated_cost_usd=_estimated_cost_usd(
-                repair_effective_input_tokens,
+                repair_response.input_tokens,
                 repair_response.output_tokens,
             ),
         )
