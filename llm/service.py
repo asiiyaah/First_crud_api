@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from fastapi import HTTPException
-from openai import OpenAI
+from openai import APIError, APITimeoutError, OpenAI
 from pydantic import ValidationError
 
 from .schema import TriageResponse
@@ -28,20 +28,34 @@ def triage_task(text: str) -> TriageResponse:
     client = OpenAI(
         base_url="http://host.docker.internal:11434/v1",
         api_key="ollama",
+        timeout=30.0,
+        max_retries=1,
     )
 
-    response = client.chat.completions.create(
-        model="gemma3:1b",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt,
-            }
-        ],
-    )
+    try:
+        response = client.chat.completions.create(
+            model="gemma3:1b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ],
+        )
+
+    except APITimeoutError as exc:
+        raise HTTPException(
+            status_code=504,
+            detail="LLM request timed out.",
+        ) from exc
+
+    except APIError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM provider request failed.",
+        ) from exc
 
     content = response.choices[0].message.content.strip()
-    
 
     if content.startswith("```json"):
         content = content[7:]
@@ -53,17 +67,18 @@ def triage_task(text: str) -> TriageResponse:
 
     try:
         result = TriageResponse.model_validate_json(content)
+
     except ValidationError as exc:
         raise HTTPException(
-        status_code=502,
-        detail="LLM returned an invalid triage response.",
+            status_code=502,
+            detail="LLM returned an invalid triage response.",
         ) from exc
 
     if result.confidence < CONFIDENCE_THRESHOLD:
         result.category = "other"
         result.priority = "normal"
         result.reason = (
-        "The model was not confident enough to classify this request."
+            "The model was not confident enough to classify this request."
         )
 
     return result
