@@ -1,6 +1,8 @@
 from pathlib import Path
 
+from fastapi import HTTPException
 from openai import OpenAI
+from pydantic import ValidationError
 
 from .schema import TriageResponse
 
@@ -46,4 +48,10 @@ def triage_task(text: str) -> TriageResponse:
 
     content = content.strip()
 
-    return TriageResponse.model_validate_json(content)
+    try:
+        return TriageResponse.model_validate_json(content)
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail="LLM returned an invalid triage response.",
+            ) from exc

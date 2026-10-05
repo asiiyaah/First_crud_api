@@ -10,4 +10,4 @@ class TriageResponse(BaseModel):
     category: Literal["bug", "feature", "task", "other"]
     priority: Literal["low", "normal", "high"]
     confidence: float = Field(..., ge=0.0, le=1.0)
-    reason: str
+    reason: str = Field(..., min_length=1, max_length=500)
